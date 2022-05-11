@@ -25,9 +25,12 @@ async function run(){
 
         app.post('/product', async(req, res)=> {
           const product = req.body
-          console.log(product);
+          console.log(product.name);
+          if(!product.name || !product.price || !product.url){
+            return res.send({success: false, error: 'Please Provide all Details'})
+          }
           const result = await productsCollection.insertOne(product);
-          res.send(result)
+          res.send({success: true, message: `You Successfully added ${product.name}`})
         })
     }
     finally{}
