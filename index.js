@@ -11,7 +11,6 @@ app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@mycluster.rn7n6.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri);
-console.log(uri);
 
 async function run() {
   try {
@@ -19,9 +18,19 @@ async function run() {
     const productsCollection = client.db("ProductDB").collection("products");
 
     app.get("/products", async (req, res) => {
-      const result = await productsCollection.find({}).toArray();
-      if (!result?.length) return res.send({ success: false, error: "No Data Found" });
-      res.send({ success: true, data: result });
+      const limit = Number(req.query.limit);
+      const pageNumber = Number(req.query.pageNumber);
+      const result = await productsCollection
+        .find({})
+        .skip(limit * pageNumber)
+        .limit(limit)
+        .toArray();
+
+      const count = await productsCollection.estimatedDocumentCount()
+
+      if (!result?.length)
+        return res.send({ success: false, error: "No Data Found" });
+      res.send({ success: true, data: result, count: count });
     });
 
     app.post("/product", async (req, res) => {
@@ -40,11 +49,11 @@ async function run() {
       });
     });
 
-    app.delete('/product/:id', async(req, res) => {
-      const id = {_id: ObjectId(req.params.id)}
-      const result = await productsCollection.deleteOne(id)
-      res.send({success: true, message: `You have Deleted successfully`})
-    })
+    app.delete("/product/:id", async (req, res) => {
+      const id = { _id: ObjectId(req.params.id) };
+      const result = await productsCollection.deleteOne(id);
+      res.send({ success: true, message: `You have Deleted successfully` });
+    });
   } finally {
   }
 }
